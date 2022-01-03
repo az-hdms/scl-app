@@ -25,7 +25,12 @@ greyIcon <- makeIcon(
   iconAnchorX = 4.5, iconAnchorY = 15,
   popupAnchorX = -1, popupAnchorY = -9
 )
-
+smallblueIcon <- makeIcon(
+  iconUrl = "./markers/marker-blue.png",
+  iconWidth = 9, iconHeight = 15,
+  iconAnchorX = 4.5, iconAnchorY = 15,
+  popupAnchorX = -1, popupAnchorY = -9
+)
 
 
 # MAPPING FUNCTION --------------------------------------------------------
@@ -40,12 +45,12 @@ pod_render_map <- function(data, snap = T) {
       b <- st_bbox(data)
       
       leafletProxy("map") %>% 
-        clearGroup("Submitted Data") %>%
+        clearGroup("Uploaded Data") %>%
         addMarkers(
           data = data,
           icon = blueIcon,
           layerId = paste0(data$id),
-          group = "Submitted Data",
+          group = "Uploaded Data",
           popup = ~do.call(pod_popup, args = list(data = data)),
           # options = markerOptions(pane = "pod"),
           clusterOptions = markerClusterOptions(maxClusterRadius = 2)
@@ -55,12 +60,12 @@ pod_render_map <- function(data, snap = T) {
     } else {
       
       leafletProxy("map") %>% 
-        clearGroup("Submitted Data") %>%
+        clearGroup("Uploaded Data") %>%
         addMarkers(
           data = data,
           icon = blueIcon,
           layerId = paste0(data$id),
-          group = "Submitted Data",
+          group = "Uploaded Data",
           popup = ~do.call(pod_popup, args = list(data = data)),
           # options = markerOptions(pane = "pod"),
           clusterOptions = markerClusterOptions(maxClusterRadius = 2)
@@ -70,7 +75,7 @@ pod_render_map <- function(data, snap = T) {
     
 
   } else {
-    leafletProxy("map") %>% clearGroup("Submitted Data")
+    leafletProxy("map") %>% clearGroup("Uploaded Data")
   }
 }
 
@@ -178,6 +183,51 @@ scl_render_map <- function(data) {
 scl_popup = function(data) {
   glue::glue(
     '
+    <h5>{data$species}</h5>
+    <strong>ObsDate:</strong>           {data$obs_date        } <br/>
+    <strong>NameUsed:</strong>          {data$name_used       } <br/>
+    <strong>Count:</strong>             {data$num_observed    } <br/>
+    <strong>County:</strong>            {data$county          } <br/>
+    <strong>Directions:</strong>        {data$directions      } <br/>
+    <strong>X:</strong>                 {data$loc_x           }  
+    <strong>Y:</strong>                 {data$loc_y           } <br/>
+    <strong>General Notes:</strong>     {data$general_notes   } <br/>
+    '
+  )
+}
+
+
+
+# Previously Submitted Data -----------------------------------------------
+
+prev_render_map <- function(data) {
+  if(nrow(data) != 0) {
+    
+    data <- st_transform(data, 4326)
+    
+    leafletProxy("map") %>% 
+      clearGroup("Prev. Submitted") %>%
+      addMarkers(
+        data = data,
+        icon = smallblueIcon,
+        layerId = paste0(data$id),
+        group = "Prev. Submitted",
+        popup = ~do.call(prev_popup, args = list(data = data)),
+        # options = markerOptions(pane = "pod"),
+        clusterOptions = markerClusterOptions(maxClusterRadius = 2)
+        # clusterOptions = markerClusterOptions(clusterPane = "pod")
+      ) 
+    
+  } else {
+    leafletProxy("map") %>% clearGroup("Prev. Submitted")
+  }
+}
+
+
+prev_popup = function(data) {
+  glue::glue(
+    '
+    <h4>{data$context_id_source}</h4>
     <h5>{data$species}</h5>
     <strong>ObsDate:</strong>           {data$obs_date        } <br/>
     <strong>NameUsed:</strong>          {data$name_used       } <br/>

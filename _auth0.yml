@@ -1,5 +1,5 @@
 name: SCL App
-remote_url: 'https://agfd-scl.eastus.cloudapp.azure.com/sample-apps/scl-app'
+remote_url: 'https://hdms.azgfd.com/submit-data'
 auth0_config:
   api_url: !expr paste0('https://', Sys.getenv('AUTH0_USER'), '.auth0.com')
   credentials:

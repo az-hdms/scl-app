@@ -13,15 +13,15 @@ return_clean <- function() {
   )
 }
 
-check_taxonomy_provided <- function(x) {
+check_taxonomy_provided <- function(x, y) {
   
-  if(is.na(x)) {
+  if(is.na(x) & is.na(y)) {
     return_error(
       x,
       type = "error",
       code = 100,
       column = "Scientific Name",
-      description = "Taxon not provided",
+      description = "No taxonomy provided",
       action = "Please provide a value"
     )
   }
@@ -30,8 +30,9 @@ check_taxonomy_provided <- function(x) {
 
 check_taxonomy_exists <- function(x, y) {
   if(y == "sci") {
-    if(!is.na(x) & !x %in% sname$SCIENTIFIC_NAME) {
-      return_error(
+    # if(!is.na(x) & !x %in% sname$SCIENTIFIC_NAME) {
+    if(!is.na(x) & !x %in% mt_sci) {
+      ret <- return_error(
         x,
         type = "taxonomy",
         code = 101,
@@ -39,11 +40,13 @@ check_taxonomy_exists <- function(x, y) {
         description = "Scientific name provided is not valid",
         action = "Please provide a valid scientific name"
       )
+      return(ret)
     }
   }
   if(y == "com") {
     if(!is.na(x) & !x %in% et$COMMON_NAME) {
-      return_error(
+    # if(!is.na(x) & !x %in% mt$common_name) {
+      ret <- return_error(
         x,
         type = "taxonomy",
         code = 101,
@@ -51,9 +54,10 @@ check_taxonomy_exists <- function(x, y) {
         description = "Common name provided is not valid",
         action = "Please provide a valid common name"
       )
-    } else if(length(et$NAME[x %in% et$COMMON_NAME]) > 1) {
+      return(ret)
+    } else if(length(et$NAME[which(x == et$COMMON_NAME)]) > 1) {
       matched <- et$NAME[!is.na(et$COMMON_NAME) & et$COMMON_NAME == x]
-      return_error(
+      ret <- return_error(
         x,
         type = "error",
         code = 104,
@@ -61,43 +65,63 @@ check_taxonomy_exists <- function(x, y) {
         description = glue("Common name provided matches more than one species: {glue_collapse(matched, sep = ', ')}"),
         action = "Please provide a scientific name instead"
       )
+      return(ret)
     }
   }
 }
 
 check_taxonomy_in_est <- function(x) {
   if(!is.na(x) & !x %in% et$NAME) {
-    return_error(
-      x,
-      type = "internal",
-      code = 102,
-      column = "Scientific Name",
-      description = "Taxon value provided is not in EST",
-      action = "Align with EST or make allow an exception"
-    )
+    # TODO: turned off internals fornow
+    # return_error(
+    #   x,
+    #   type = "internal",
+    #   code = 102,
+    #   column = "Scientific Name",
+    #   description = "Taxon value provided is not in EST",
+    #   action = "Align with EST or make allow an exception"
+    # )
   }
 }
 
 suggest_taxonomy <- function(x) {
-  idx <- agrep(x, sname$SCIENTIFIC_NAME)
-  sname$SCIENTIFIC_NAME[idx]
+  idx <- agrep(x, et$NAME)
+  et$NAME[idx]
 }
 
+suggest_taxonomy_common <- function(x) {
+  idx <- agrep(x, et$COMMON_NAME)
+  et$COMMON_NAME[idx]
+}
+
+suggest_synonym <- function(x) {
+  idx <- which(syn_list$SYNONYM == x)
+  if(length(idx) > 0) {
+    accepted_names <- syn_list$ACCEPTED_NAME[idx]
+    return(accepted_names)
+  }
+}
+
+suggest_synonym_common <- function(x) {
+  matched <- et$NAME[!is.na(et$COMMON_NAME) & et$COMMON_NAME == x]
+  return(matched)
+}
 
 check_taxonomy_synonym <- function(x) {
-  idx <- which(syn_list$SYNONYM == x)
-  if(length(idx) > 0){
-    accepted_name <- syn_list$ACCEPTED_NAME[idx]
-    # return(accepted_name)
-    return_error(
-      x,
-      type = "warning",
-      code = 103,
-      column = "Scientific Name",
-      description = glue("{x} is a synonym of: {glue_collapse(accepted_name, sep = ', ')}"),
-      action = "Change to an accepted name"
-    )
-  }
+  # idx <- which(syn_list$SYNONYM == x)
+  # if(length(idx) > 0){
+  #   accepted_name <- syn_list$ACCEPTED_NAME[idx]
+  #   # return(accepted_name)
+  #   ret <- return_error(
+  #     x,
+  #     type = "warning",
+  #     code = 103,
+  #     column = "Scientific Name",
+  #     description = glue("{x} is a synonym of: {glue_collapse(accepted_name, sep = ', ')}"),
+  #     action = "Change to an accepted name"
+  #   )
+  #   return(ret)
+  # }
 }
 
 # Coordinates -------------------------------------------------------------
@@ -171,14 +195,15 @@ check_utm_zone <- function(x) {
 
 check_utm_zone_needed <- function(x) {
   if(!is.na(x)){
-    return_error(
-      x,
-      type = "internal",
-      code = 205,
-      column = "Zone",
-      description = "UTM Zone provided, but coordinate type is not defined as UTM",
-      action = "UTM Zone will be ignored for this value"
-    )
+    # TODO: i've turned off internal errors for now
+    # return_error(
+    #   x,
+    #   type = "internal",
+    #   code = 205,
+    #   column = "Zone",
+    #   description = "UTM Zone provided, but coordinate type is not defined as UTM",
+    #   action = "UTM Zone will be ignored for this value"
+    # )
   }
 }
 
@@ -502,7 +527,7 @@ check_obs_date_given <- function(x) {
 
 check_obs_date <- function(x, type = "date1") {
   value <- suppressWarnings(lubridate::as_date(x))
-  print(is.na(value))
+  # print(is.na(value))
   column = ifelse(type == "date1", "Date", "Date 2")
   if(is.na(value)) {
     return_error(

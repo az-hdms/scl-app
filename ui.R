@@ -8,8 +8,26 @@ library(auth0)
 # ui <-
 ui <- auth0_ui(
   fluidPage(
+  id="app",
   useShinyjs(),
   theme = shinytheme("flatly"),
+  # Workaround to get new token when user hits refresh on the page - https://github.com/curso-r/auth0/issues/54
+  # tags$script(JS("setTimeout(function(){history.pushState({}, 'Page Title', '/');},2000);")),
+  tags$style(
+    "
+    #toggleOnlyErrors {
+      width: 30px;
+      height: 30px;
+    }
+    .checkbox label{
+      display: flex;
+    }
+    .checkbox label span {
+      margin-left: 3rem;
+      font-size: 2.2rem;
+    }
+    "
+  ),
   navbarPage(
     id="nav",
     title = "AGFD SCL Report Submission Tool",
@@ -34,6 +52,7 @@ ui <- auth0_ui(
         )
       ),
       uiOutput("upload"),
+      uiOutput("upload_loading"),
       uiOutput("upload_feedback")
     ),
 
@@ -57,6 +76,7 @@ ui <- auth0_ui(
                 hr(),
                 uiOutput("overview"),
                 uiOutput("past_scl_overview"),
+                uiOutput("past_submitted_data_overview"),
                 h4(strong("See a point that's not in the correct location?")),
                 p("You can manually move points to the correct location by clicking on the marker, clicking 'Move', and dragging the marker to the correct location. Typos in coordinates can also by modified in the 'Quality Control' and 'View All Records' areas."),
                 p("Click the 'Basemaps' button to switch to a different basemap, and can filter which species you want to be visible on the map.")
@@ -96,7 +116,18 @@ ui <- auth0_ui(
         tabPanel(
           "Quality Control",
           h2("Taxonomy"),
-          DTOutput("taxonomyTable"),
+          div(
+            style = "display: flex; align-items: center;",
+            div(
+              style = "margin-right: 2rem;",
+              selectInput("badTaxonomySelect", label = "Taxonomy not found", choices = NULL)
+            ),
+            div(
+              style = "margin-right: 2rem;",
+              selectInput("suggestedTaxonomySelect", label = "Suggested names", choices = NULL)
+            ),
+            actionButton("bulkEdit", "Change all")
+          ),
           h2("Coordinates/Others"),
           DTOutput("errorTable")
         ),
@@ -114,28 +145,29 @@ ui <- auth0_ui(
           h3("Modfiying values"),
           p("You can always correct data in the Excel template and resubmit. However, you can also modify the value of a field directly on this table by double-clicking the value you wish to change."),
           p("Please note that you must scroll to the right to see the entire contents of the table."),
+          checkboxInput("toggleOnlyErrors", "Show only errors?", value = FALSE),
           DT::dataTableOutput("table")
         )
       )
     ),
     tabPanel(
       "Submit Data",
-      h2("..submit data logic here")
+      uiOutput("submit_default"),
+      uiOutput("submit_ui")
     ),
     tabPanel(
       "FAQ",
-      h2("Why does this tool exist?"),
-      p("Processing and doing quality-control on species occurrence data is a complex and time-consuming task. Over the years, we've developed internal tools that help us process data and spot errors more quickly. We've decided to share these tools to help you visualize your data, quickly spot errors in location and taxonomic information, and to help us maintain the highest-quality species observation database."),
-      
-      h2("How do my data get used by AGFD?"),
-      p("Our Point Observation Database contains over 600,000 records of species occurrence data, and your data is vital to contributing to our knowledge about species distributions in Arizona. These data are used in a variety of managment and research contexts, such as project evaluation, environmental compliance, and planning monitoring efforts."),
-      
-      h2("I need more help!"),
-      p("We've got you covered! Please check out our detailed walk-through by clicking the 'Walkthrough' tab at the top of this page. Still stuck? You can reach out to Chrissy Kondrat-Smith.")
+      div(
+        style = "max-width: 80rem;",
+        HTML(faq)
+      )
     ),
     tabPanel(
       "Walkthrough",
-      h2("...walkthrough goes here.")
+      div(
+        style = "max-width: 80rem;",
+        HTML(walkthrough)
+      )
     )
   ),
   tags$script("
@@ -151,6 +183,12 @@ ui <- auth0_ui(
     //Shiny.addCustomMessageHandler('disable-select', function(message) {
     //  
     //})
+    
+    const a = document.querySelector('#upload')
+    const b = document.querySelector('#upload_loading')
+    a.addEventListener('change', function(e) {
+      b.innerText = 'Loading data to server...'
+    })
   ")
 # )
 ), info = a0)
